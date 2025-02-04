@@ -1,73 +1,112 @@
 <script lang="ts">
-  interface User {
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
+
+  type User = {
     username: string;
     password: string;
     email: string;
-    phone: string;
-  }
-  let users: User[] = [];
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
 
-  let organization: { name: string; url: string } = { name: '', url: '' };
-  let currentUser = { username: '', password: '', email: '', phone: '' };
+  type Organization = {
+    name: string;
+    url: string;
+  };
+
+  const ROLES = ['Administrator', 'Data Administrator', 'Data Editor', 'Data Viewer'] as const;
+
+  let organization: Organization = { name: '', url: '' };
+  let users: User[] = [];
+  let currentUser: User = createEmptyUser();
   let jsonOutput = '';
   let error = '';
   let editingIndex: number | null = null;
+  let showPassword = false;
+  let isGeneratedPassword = false;
   let usernameInput: HTMLInputElement | null = null;
 
-  function addUser() {
-    if (currentUser.username && currentUser.password) {
-      users = [...users, { ...currentUser }];
-      resetForm();
-      focusUsername();
-    } else {
-      error = 'Please fill in both fields';
+  function createEmptyUser(): User {
+    return {
+      username: '',
+      password: '',
+      email: '',
+      firstName: '',
+      lastName: '',
+      role: ROLES[1]
+    };
+  }
+
+  function generatePassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
+      ''
+    );
+  }
+
+  function toggleGeneratedPassword() {
+    isGeneratedPassword = !isGeneratedPassword;
+    if (isGeneratedPassword) {
+      currentUser.password = generatePassword();
     }
+  }
+
+  function handleSubmit() {
+    if (!currentUser.username || !currentUser.password || !currentUser.role) {
+      error = 'Please fill in all required fields (username, password, role)';
+      return;
+    }
+
+    const isDuplicate = users.some(
+      (user, index) =>
+        user.username.toLowerCase() === currentUser.username.toLowerCase() && index !== editingIndex
+    );
+
+    if (isDuplicate) {
+      error = 'Username already exists. Please choose a different one.';
+      focusUsername();
+      return;
+    }
+
+    if (editingIndex !== null) {
+      users[editingIndex] = { ...currentUser };
+    } else {
+      users = [...users, { ...currentUser }];
+    }
+
+    resetForm();
+    focusUsername();
+    if (isGeneratedPassword) currentUser.password = generatePassword();
   }
 
   function editUser(index: number) {
     editingIndex = index;
     currentUser = { ...users[index] };
-  }
-
-  function updateUser() {
-    if (editingIndex !== null && currentUser.username && currentUser.password) {
-      users[editingIndex] = { ...currentUser };
-      resetForm();
-    } else {
-      error = 'Please fill in both fields';
-    }
+    isGeneratedPassword = false; // Allow manual password input when editing
   }
 
   function deleteUser(index: number) {
     users = users.filter((_, i) => i !== index);
-    resetForm();
+    if (editingIndex === index) resetForm();
   }
 
   function resetForm() {
-    currentUser = { username: '', password: '', email: '', phone: '' };
     editingIndex = null;
+    currentUser = createEmptyUser();
     error = '';
     updateJsonPreview();
-  }
-
-  function focusUsername() {
-    if (usernameInput) {
-      usernameInput.focus();
-    }
   }
 
   function updateJsonPreview() {
     jsonOutput = JSON.stringify(
       {
         users: users.map((user) => ({
-          username: user.username,
-          credentials: [
-            {
-              type: 'password',
-              value: user.password,
-              temporary: true
-            }
-          ],
+          ...user,
+          credentials: [{ type: 'password', value: user.password, temporary: true }],
           enabled: true
         }))
       },
@@ -79,119 +118,151 @@
   function copyToClipboard() {
     navigator.clipboard.writeText(jsonOutput);
   }
+
+  function focusUsername() {
+    usernameInput?.focus();
+  }
+
+  $: updateJsonPreview();
 </script>
 
-<div class="grid min-h-screen grid-cols-2 gap-8 p-16">
-  <!-- Input Column -->
-  <div class="flex flex-col gap-4">
-    <!-- Organization -->
-    <div class="mb-4">
-      <label for="organization" class="block font-semibold">Organization</label>
-      <input
-        type="text"
-        id="organization"
-        bind:value={organization.name}
-        class="w-full rounded border p-2"
-      />
-      <input
-        type="text"
-        id="organization-url"
-        bind:value={organization.url}
-        class="w-full rounded border p-2"
-      />
-    </div>
-    <form
-      on:submit|preventDefault={editingIndex === null ? addUser : updateUser}
-      class="flex flex-col gap-4"
-    >
-      <div class="mb-4">
-        <label for="username" class="block font-semibold">Username</label>
-        <input
-          type="text"
-          id="username"
-          bind:this={usernameInput}
-          bind:value={currentUser.username}
-          class="w-full rounded border p-2"
-        />
+<div class="min-h-screen">
+  <div class="grid grid-cols-2 gap-8 p-2">
+    <!-- Input Column -->
+    <div class="flex flex-col gap-4">
+      <!-- Organization -->
+      <div class="flex gap-4">
+        <div class="w-1/2">
+          <Label for="org_name">Organization Name</Label>
+          <Input id="org_name" bind:value={organization.name} placeholder="Organization Name" />
+        </div>
+        <div class="w-1/2">
+          <Label for="org_url">Organization URL</Label>
+          <Input
+            type="url"
+            id="org_url"
+            bind:value={organization.url}
+            placeholder="Organization URL"
+          />
+        </div>
       </div>
 
-      <div class="mb-4">
-        <label for="password" class="block font-semibold">Password</label>
-        <input
-          type="password"
-          id="password"
-          bind:value={currentUser.password}
-          class="w-full rounded border p-2"
-        />
-      </div>
+      <form on:submit|preventDefault={handleSubmit} class="flex flex-col gap-4">
+        <div>
+          <Label for="username">
+            Username <span class="text-sm text-gray-500">(required)</span>
+          </Label>
+          <input
+            id="username"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            bind:value={currentUser.username}
+            bind:this={usernameInput}
+            required
+          />
+        </div>
 
-      <div class="flex gap-2">
-        <button type="submit" class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-          {editingIndex === null ? 'Add User +' : 'Update User'}
-        </button>
+        <!-- Password Section with Toggle -->
+        <div>
+          <Label for="password">
+            Password <span class="text-sm text-gray-500">(required)</span>
+          </Label>
+          <div class="flex gap-2">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              bind:value={currentUser.password}
+              required
+              disabled={isGeneratedPassword}
+            />
+            <Button type="button" on:click={toggleGeneratedPassword}>
+              {isGeneratedPassword ? 'Manual Password' : 'Generate Password'}
+            </Button>
+            <div class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="show-password"
+                bind:checked={showPassword}
+                class="h-4 w-4 rounded border"
+              />
+              <Label for="show-password" class="text-sm">Show Password</Label>
+            </div>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          on:click={resetForm}
-          class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
-          disabled={editingIndex === null && users.length === 0}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <Label for="email">Email</Label>
+            <Input type="email" id="email" bind:value={currentUser.email} />
+          </div>
+          <div>
+            <Label for="firstName">First Name</Label>
+            <Input id="firstName" bind:value={currentUser.firstName} />
+          </div>
+          <div>
+            <Label for="lastName">Last Name</Label>
+            <Input id="lastName" bind:value={currentUser.lastName} />
+          </div>
+        </div>
 
-    {#if error}
-      <div class="mt-2 text-red-500">{error}</div>
-    {/if}
-
-    {#if users.length > 0}
-      <div class="mt-6 rounded bg-gray-50 p-4">
-        <h3 class="font-semibold">Users Added ({users.length}):</h3>
-        <ul class="list-disc pl-4">
-          {#each users as user, index (user.username)}
-            <li class="flex items-center justify-between">
-              <span>{user.username}</span>
-              <div class="flex gap-2">
-                <button
-                  on:click={() => editUser(index)}
-                  class="rounded bg-yellow-500 px-2 py-1 text-sm text-white hover:bg-yellow-600"
-                >
-                  Edit
-                </button>
-                <button
-                  on:click={() => deleteUser(index)}
-                  class="rounded bg-red-500 px-2 py-1 text-sm text-white hover:bg-red-600"
-                >
-                  Delete
-                </button>
+        <fieldset>
+          <legend class="mb-2 text-sm font-medium"
+            >Role <span class="text-gray-500">(required)</span></legend
+          >
+          <RadioGroup.Root bind:value={currentUser.role}>
+            {#each ROLES as role}
+              <div class="flex items-center space-x-2">
+                <RadioGroup.Item value={role} id={role} />
+                <Label for={role} class="text-sm">{role}</Label>
               </div>
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
-  </div>
+            {/each}
+          </RadioGroup.Root>
+        </fieldset>
 
-  <!-- JSON Preview Column -->
-  <div class="flex flex-col rounded bg-gray-100 p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h3 class="font-semibold">JSON Preview</h3>
-      <button
-        on:click={copyToClipboard}
-        class="rounded bg-gray-500 px-3 py-1 text-sm text-white hover:bg-gray-600"
-      >
-        Copy JSON
-      </button>
+        <div class="flex gap-2">
+          <Button type="submit">{editingIndex === null ? 'Add User' : 'Update User'}</Button>
+          <Button variant="outline" on:click={resetForm}>Reset Form</Button>
+        </div>
+      </form>
+
+      {#if error}
+        <div class="mt-2 text-sm text-red-500">{error}</div>
+      {/if}
+
+      {#if users.length > 0}
+        <div class="mt-6 rounded bg-gray-50 p-4">
+          <h3 class="mb-2 font-semibold">Users Added ({users.length}):</h3>
+          <ul class="space-y-2">
+            {#each users as user, index (user.username)}
+              <li class="flex items-center justify-between rounded bg-white p-2 shadow-sm">
+                <div>
+                  <span class="font-medium">{user.username}</span>
+                  <span class="ml-2 text-sm text-gray-500">({user.role})</span>
+                </div>
+                <div class="flex gap-2">
+                  <Button size="sm" variant="outline" on:click={() => editUser(index)}>Edit</Button>
+                  <Button size="sm" variant="destructive" on:click={() => deleteUser(index)}>
+                    Delete
+                  </Button>
+                </div>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
     </div>
 
-    {#if users.length > 0}
-      <pre
-        class="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-white p-4">{jsonOutput}</pre>
-    {:else}
-      <p class="italic text-gray-500">
-        No users added yet. Start adding users to see the JSON preview.
-      </p>
-    {/if}
+    <!-- JSON Preview Column -->
+    <div class="flex h-full flex-col rounded-lg bg-gray-100 p-4">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="font-semibold">JSON Preview</h3>
+        <Button size="sm" on:click={copyToClipboard}>Copy JSON</Button>
+      </div>
+
+      {#if users.length > 0}
+        <pre class="flex-1 overflow-auto rounded bg-white p-4 font-mono text-sm">{jsonOutput}</pre>
+      {:else}
+        <div class="flex flex-1 items-center justify-center text-gray-500">No users added yet.</div>
+      {/if}
+    </div>
   </div>
 </div>
