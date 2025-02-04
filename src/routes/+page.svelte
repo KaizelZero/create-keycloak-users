@@ -110,6 +110,11 @@
     if (editingIndex === index) resetForm();
   }
 
+  function capitalizeName(event: Event) {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
   function resetForm() {
     editingIndex = null;
     currentUser = createEmptyUser();
@@ -126,8 +131,9 @@
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          realm_roles: [user.role],
           credentials: [{ type: 'password', value: user.password, temporary: true }],
+          realmRoles: [user.role],
+          requiredActions: ['UPDATE_PASSWORD'],
           enabled: true
         }))
       },
@@ -216,7 +222,7 @@
 <div class="min-h-screen">
   <div class="grid h-[calc(100vh-4rem)] grid-cols-2 gap-8 p-2">
     <!-- Input Column -->
-    <div class="flex flex-col gap-4">
+    <div class="flex select-none flex-col gap-4">
       <!-- Organization -->
       <div class="flex w-full flex-col gap-4 lg:flex-row">
         <div class="w-full">
@@ -248,6 +254,21 @@
           />
         </div>
 
+        <div>
+          <Label for="email">Email</Label>
+          <Input type="email" id="email" bind:value={currentUser.email} />
+        </div>
+        <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
+          <div>
+            <Label for="firstName">First Name</Label>
+            <Input id="firstName" bind:value={currentUser.firstName} on:input={capitalizeName} />
+          </div>
+          <div>
+            <Label for="lastName">Last Name</Label>
+            <Input id="lastName" bind:value={currentUser.lastName} on:input={capitalizeName} />
+          </div>
+        </div>
+
         <!-- Password Section with Toggle -->
         <div>
           <Label for="password">
@@ -270,21 +291,6 @@
               />
               <Label for="show-password" class="text-sm">Show Password</Label>
             </div>
-          </div>
-        </div>
-
-        <div>
-          <Label for="email">Email</Label>
-          <Input type="email" id="email" bind:value={currentUser.email} />
-        </div>
-        <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
-          <div>
-            <Label for="firstName">First Name</Label>
-            <Input id="firstName" bind:value={currentUser.firstName} />
-          </div>
-          <div>
-            <Label for="lastName">Last Name</Label>
-            <Input id="lastName" bind:value={currentUser.lastName} />
           </div>
         </div>
 
