@@ -6,6 +6,8 @@
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
+  import ClipboardCopy from 'lucide-svelte/icons/clipboard-copy';
+  import Download from 'lucide-svelte/icons/download';
 
   type User = {
     username: string;
@@ -201,16 +203,16 @@
 </script>
 
 <div class="min-h-screen">
-  <div class="grid grid-cols-2 gap-8 p-2">
+  <div class="grid h-[calc(100vh-4rem)] grid-cols-2 gap-8 p-2">
     <!-- Input Column -->
     <div class="flex flex-col gap-4">
       <!-- Organization -->
-      <div class="flex gap-4">
-        <div class="w-1/2">
+      <div class="flex w-full flex-col gap-4 lg:flex-row">
+        <div class="w-full">
           <Label for="org_name">Organization Name</Label>
           <Input id="org_name" bind:value={organization.name} placeholder="Organization Name" />
         </div>
-        <div class="w-1/2">
+        <div class="w-full">
           <Label for="org_url">Organization URL</Label>
           <Input
             type="url"
@@ -248,9 +250,6 @@
               disabled={isGeneratedPassword}
               required
             />
-            <Button type="button" on:click={toggleGeneratedPassword}>
-              {isGeneratedPassword ? 'Manual Password' : 'Generate Password'}
-            </Button>
             <div class="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -267,7 +266,7 @@
           <Label for="email">Email</Label>
           <Input type="email" id="email" bind:value={currentUser.email} />
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
           <div>
             <Label for="firstName">First Name</Label>
             <Input id="firstName" bind:value={currentUser.firstName} />
@@ -337,12 +336,38 @@
       <div class="mb-4 flex items-center justify-between">
         <h3 class="font-semibold">JSON Preview</h3>
         <div class="flex gap-2">
-          <Button size="sm" on:click={copyToClipboard} disabled={users.length === 0}
-            >Copy JSON</Button
+          <Button
+            size="sm"
+            on:click={copyToClipboard}
+            disabled={users.length === 0}
+            class={'hidden lg:block'}
           >
-          <Button size="sm" on:click={downloadJson} disabled={users.length === 0}
-            >Download JSON</Button
+            Copy JSON
+          </Button>
+          <Button
+            size="sm"
+            on:click={copyToClipboard}
+            disabled={users.length === 0}
+            class={'block lg:hidden'}
           >
+            <ClipboardCopy />
+          </Button>
+          <Button
+            size="sm"
+            on:click={downloadJson}
+            disabled={users.length === 0}
+            class={'hidden lg:block'}
+          >
+            Download JSON
+          </Button>
+          <Button
+            size="sm"
+            on:click={downloadJson}
+            disabled={users.length === 0}
+            class={'block lg:hidden'}
+          >
+            <Download />
+          </Button>
         </div>
       </div>
 
@@ -353,10 +378,13 @@
       {/if}
     </div>
   </div>
-</div>
 
-<div class="fixed bottom-1 left-1 z-50 flex gap-x-2">
-  <ThemeToggle />
-  <Button variant="outline" on:click={importJson}>Import JSON</Button>
-  <Button variant="destructive" on:click={resetState}>Reset</Button>
+  <footer class="bottom-1 h-8 gap-x-2">
+    <ThemeToggle />
+    <Button variant="outline" on:click={importJson}>Import JSON</Button>
+    <Button variant="destructive" on:click={resetState}>Reset</Button>
+    <Button on:click={toggleGeneratedPassword}>
+      {isGeneratedPassword ? 'Generated Password' : 'Manual Password'}
+    </Button>
+  </footer>
 </div>
