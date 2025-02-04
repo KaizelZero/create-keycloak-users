@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { ThemeToggle } from '$lib/components';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
+  import { save } from '@tauri-apps/api/dialog';
+  import { writeTextFile } from '@tauri-apps/api/fs';
 
   type User = {
     username: string;
@@ -27,7 +30,7 @@
   let error = '';
   let editingIndex: number | null = null;
   let showPassword = false;
-  let isGeneratedPassword = false;
+  let isGeneratedPassword = true;
   let usernameInput: HTMLInputElement | null = null;
 
   function createEmptyUser(): User {
@@ -54,6 +57,8 @@
       currentUser.password = generatePassword();
     }
   }
+
+  $: if (isGeneratedPassword) currentUser.password = generatePassword();
 
   function handleSubmit() {
     if (!currentUser.username || !currentUser.password || !currentUser.role) {
@@ -119,6 +124,25 @@
     );
   }
 
+  async function downloadJson() {
+    console.log('Downloading JSON...');
+    try {
+      // Prompt the user to select a save location
+      const filePath = await save({
+        defaultPath: `${organization.name || 'users'}.json`,
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (filePath) {
+        // Write the JSON data to the selected file
+        await writeTextFile(filePath, jsonOutput);
+        console.log('File saved successfully:', filePath);
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  }
+
   function copyToClipboard() {
     navigator.clipboard.writeText(jsonOutput);
   }
@@ -176,7 +200,6 @@
               id="password"
               bind:value={currentUser.password}
               required
-              disabled={isGeneratedPassword}
             />
             <Button type="button" on:click={toggleGeneratedPassword}>
               {isGeneratedPassword ? 'Manual Password' : 'Generate Password'}
@@ -233,14 +256,16 @@
       {/if}
 
       {#if users.length > 0}
-        <div class="mt-6 rounded bg-gray-50 p-4">
+        <div class="mt-6 rounded bg-muted p-4">
           <h3 class="mb-2 font-semibold">Users Added ({users.length}):</h3>
           <ul class="space-y-2">
             {#each users as user, index (user.username)}
-              <li class="flex items-center justify-between rounded bg-white p-2 shadow-sm">
+              <li
+                class="flex items-center justify-between rounded bg-muted-foreground p-2 text-foreground shadow-sm"
+              >
                 <div>
-                  <span class="font-medium">{user.username}</span>
-                  <span class="ml-2 text-sm text-gray-500">({user.role})</span>
+                  <span class="font-medium text-muted">{user.username}</span>
+                  <span class="ml-2 text-sm text-muted">({user.role})</span>
                 </div>
                 <div class="flex gap-2">
                   <Button size="sm" variant="outline" on:click={() => editUser(index)}>Edit</Button>
@@ -256,17 +281,22 @@
     </div>
 
     <!-- JSON Preview Column -->
-    <div class="flex h-full flex-col rounded-lg bg-gray-100 p-4">
+    <div class="flex h-full flex-col rounded-lg p-4">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="font-semibold">JSON Preview</h3>
-        <Button size="sm" on:click={copyToClipboard}>Copy JSON</Button>
+        <div class="flex gap-2">
+          <Button size="sm" on:click={copyToClipboard}>Copy JSON</Button>
+          <Button size="sm" on:click={downloadJson}>Download JSON</Button>
+        </div>
       </div>
 
       {#if users.length > 0}
-        <pre class="flex-1 overflow-auto rounded bg-white p-4 font-mono text-sm">{jsonOutput}</pre>
+        <pre class="flex-1 overflow-auto rounded bg-muted p-4 font-mono text-sm">{jsonOutput}</pre>
       {:else}
         <div class="flex flex-1 items-center justify-center text-gray-500">No users added yet.</div>
       {/if}
     </div>
   </div>
 </div>
+
+<ThemeToggle />
