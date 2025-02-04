@@ -1,15 +1,24 @@
 <script lang="ts">
-  let users: Array<{ username: string; password: string }> = [];
+  interface User {
+    username: string;
+    password: string;
+    email: string;
+    phone: string;
+  }
+  let users: User[] = [];
+
   let organization: { name: string; url: string } = { name: '', url: '' };
-  let currentUser = { username: '', password: '' };
+  let currentUser = { username: '', password: '', email: '', phone: '' };
   let jsonOutput = '';
   let error = '';
   let editingIndex: number | null = null;
+  let usernameInput: HTMLInputElement | null = null;
 
   function addUser() {
     if (currentUser.username && currentUser.password) {
       users = [...users, { ...currentUser }];
       resetForm();
+      focusUsername();
     } else {
       error = 'Please fill in both fields';
     }
@@ -35,10 +44,16 @@
   }
 
   function resetForm() {
-    currentUser = { username: '', password: '' };
+    currentUser = { username: '', password: '', email: '', phone: '' };
     editingIndex = null;
     error = '';
     updateJsonPreview();
+  }
+
+  function focusUsername() {
+    if (usernameInput) {
+      usernameInput.focus();
+    }
   }
 
   function updateJsonPreview() {
@@ -66,7 +81,7 @@
   }
 </script>
 
-<div class="grid grid-cols-2 gap-8">
+<div class="grid min-h-screen grid-cols-2 gap-8 p-16">
   <!-- Input Column -->
   <div class="flex flex-col gap-4">
     <!-- Organization -->
@@ -94,6 +109,7 @@
         <input
           type="text"
           id="username"
+          bind:this={usernameInput}
           bind:value={currentUser.username}
           class="w-full rounded border p-2"
         />
