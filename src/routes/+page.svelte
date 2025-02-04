@@ -245,6 +245,7 @@
               type={showPassword ? 'text' : 'password'}
               id="password"
               bind:value={currentUser.password}
+              disabled={isGeneratedPassword}
               required
             />
             <Button type="button" on:click={toggleGeneratedPassword}>
