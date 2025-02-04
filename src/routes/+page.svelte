@@ -378,13 +378,13 @@
       {/if}
     </div>
   </div>
+</div>
 
-  <footer class="bottom-1 h-8 gap-x-2">
-    <ThemeToggle />
-    <Button variant="outline" on:click={importJson}>Import JSON</Button>
-    <Button variant="destructive" on:click={resetState}>Reset</Button>
-    <Button on:click={toggleGeneratedPassword}>
-      {isGeneratedPassword ? 'Generated Password' : 'Manual Password'}
-    </Button>
-  </footer>
+<div class="fixed bottom-1 right-1 flex gap-x-2 py-2 align-middle">
+  <ThemeToggle />
+  <Button variant="outline" on:click={importJson}>Import JSON</Button>
+  <Button variant="destructive" on:click={resetState}>Reset</Button>
+  <Button on:click={toggleGeneratedPassword}>
+    {isGeneratedPassword ? 'Generated Password' : 'Manual Password'}
+  </Button>
 </div>
