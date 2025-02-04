@@ -105,7 +105,11 @@
     jsonOutput = JSON.stringify(
       {
         users: users.map((user) => ({
-          ...user,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          realm_roles: [user.role],
           credentials: [{ type: 'password', value: user.password, temporary: true }],
           enabled: true
         }))
@@ -189,11 +193,11 @@
           </div>
         </div>
 
+        <div>
+          <Label for="email">Email</Label>
+          <Input type="email" id="email" bind:value={currentUser.email} />
+        </div>
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <Label for="email">Email</Label>
-            <Input type="email" id="email" bind:value={currentUser.email} />
-          </div>
           <div>
             <Label for="firstName">First Name</Label>
             <Input id="firstName" bind:value={currentUser.firstName} />
