@@ -6,8 +6,10 @@
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
+  import ClipboardCheck from 'lucide-svelte/icons/clipboard-check';
   import ClipboardCopy from 'lucide-svelte/icons/clipboard-copy';
   import Download from 'lucide-svelte/icons/download';
+  import { toast } from 'svelte-sonner';
 
   type User = {
     username: string;
@@ -68,6 +70,7 @@
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     updateJsonPreview();
+    toast.info('Reset State');
   }
 
   function handleSubmit() {
@@ -147,6 +150,7 @@
         console.log('File saved successfully:', filePath);
       }
     } catch (error) {
+      toast.error(`Failed to save file: ${error}`);
       console.error('Failed to save file:', error);
     }
   }
@@ -187,12 +191,19 @@
         updateJsonPreview();
       }
     } catch (error) {
+      toast.error(`Failed to import file: ${error}`);
       console.error('Failed to import file:', error);
     }
   }
 
+  let copied = false;
   function copyToClipboard() {
     navigator.clipboard.writeText(jsonOutput);
+    copied = true;
+    toast.success('Copied to clipboard!');
+    setTimeout(() => {
+      copied = false;
+    }, 2000);
   }
 
   function focusUsername() {
@@ -342,7 +353,7 @@
             disabled={users.length === 0}
             class={'hidden lg:block'}
           >
-            Copy JSON
+            {copied ? 'Copied!' : 'Copy JSON'}
           </Button>
           <Button
             size="sm"
@@ -350,7 +361,11 @@
             disabled={users.length === 0}
             class={'block lg:hidden'}
           >
-            <ClipboardCopy />
+            {#if copied}
+              <ClipboardCheck />
+            {:else}
+              <ClipboardCopy />
+            {/if}
           </Button>
           <Button
             size="sm"
