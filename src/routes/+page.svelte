@@ -30,7 +30,7 @@
   let error = '';
   let editingIndex: number | null = null;
   let showPassword = false;
-  let isGeneratedPassword = true;
+  $: isGeneratedPassword = true;
   let usernameInput: HTMLInputElement | null = null;
 
   function createEmptyUser(): User {
@@ -63,6 +63,7 @@
   function resetState() {
     users = [];
     currentUser = createEmptyUser();
+    if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     updateJsonPreview();
   }
@@ -92,13 +93,11 @@
 
     resetForm();
     focusUsername();
-    if (isGeneratedPassword) currentUser.password = generatePassword();
   }
 
   function editUser(index: number) {
     editingIndex = index;
     currentUser = { ...users[index] };
-    isGeneratedPassword = false; // Allow manual password input when editing
   }
 
   function deleteUser(index: number) {
@@ -109,6 +108,7 @@
   function resetForm() {
     editingIndex = null;
     currentUser = createEmptyUser();
+    if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     updateJsonPreview();
   }
@@ -149,7 +149,6 @@
     }
   }
 
-  let test: any;
   async function importJson() {
     try {
       const filePath = await open({
@@ -171,11 +170,11 @@
         users = parsed.users.map((user: any) => {
           const mappedUser: User = {
             username: user.username || '',
-            password: user.credentials?.[0]?.value || generatePassword(),
+            password: user.credentials?.[0]?.value,
             email: user.email || '',
             firstName: user.firstName || '',
             lastName: user.lastName || '',
-            role: ROLES.includes(user.realm_roles?.[0]) ? user.realm_roles[0] : ROLES[1]
+            role: user.realm_roles[0]
           };
           return mappedUser;
         });
@@ -201,7 +200,6 @@
   $: updateJsonPreview();
 </script>
 
-<pre>{JSON.stringify(test, null, 2)}</pre>
 <div class="min-h-screen">
   <div class="grid grid-cols-2 gap-8 p-2">
     <!-- Input Column -->
@@ -280,9 +278,10 @@
         </div>
 
         <fieldset>
-          <legend class="mb-2 text-sm font-medium"
-            >Role <span class="text-gray-500">(required)</span></legend
-          >
+          <legend class="mb-2 text-sm font-medium">
+            Role
+            <span class="text-gray-500">(required)</span>
+          </legend>
           <RadioGroup.Root bind:value={currentUser.role}>
             {#each ROLES as role}
               <div class="flex items-center space-x-2">
@@ -295,7 +294,11 @@
 
         <div class="flex gap-2">
           <Button type="submit">{editingIndex === null ? 'Add User' : 'Update User'}</Button>
-          <Button variant="outline" on:click={resetForm}>Reset Form</Button>
+          {#if editingIndex !== null}
+            <Button variant="destructive" on:click={resetForm}>Cancel Edit</Button>
+          {:else}
+            <Button variant="outline" on:click={resetForm}>Reset Form</Button>
+          {/if}
         </div>
       </form>
 
@@ -329,12 +332,16 @@
     </div>
 
     <!-- JSON Preview Column -->
-    <div class="flex h-full flex-col rounded-lg p-4">
+    <div class="flex max-h-screen flex-col rounded-lg p-4">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="font-semibold">JSON Preview</h3>
         <div class="flex gap-2">
-          <Button size="sm" on:click={copyToClipboard}>Copy JSON</Button>
-          <Button size="sm" on:click={downloadJson}>Download JSON</Button>
+          <Button size="sm" on:click={copyToClipboard} disabled={users.length === 0}
+            >Copy JSON</Button
+          >
+          <Button size="sm" on:click={downloadJson} disabled={users.length === 0}
+            >Download JSON</Button
+          >
         </div>
       </div>
 
@@ -350,4 +357,5 @@
 <div class="fixed bottom-1 left-1 z-50 flex gap-x-2">
   <ThemeToggle />
   <Button variant="outline" on:click={importJson}>Import JSON</Button>
+  <Button variant="destructive" on:click={resetState}>Reset</Button>
 </div>

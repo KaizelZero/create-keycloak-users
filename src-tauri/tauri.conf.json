@@ -7,7 +7,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "create-keycloak-users",
+    "productName": "Create Users",
     "version": "0.1.0"
   },
   "tauri": {
