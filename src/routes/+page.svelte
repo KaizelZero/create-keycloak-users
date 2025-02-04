@@ -4,8 +4,8 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { save } from '@tauri-apps/api/dialog';
-  import { writeTextFile } from '@tauri-apps/api/fs';
+  import { open, save } from '@tauri-apps/api/dialog';
+  import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
 
   type User = {
     username: string;
@@ -24,7 +24,7 @@
   const ROLES = ['Administrator', 'Data Administrator', 'Data Editor', 'Data Viewer'] as const;
 
   let organization: Organization = { name: '', url: '' };
-  let users: User[] = [];
+  $: users = [] as User[];
   let currentUser: User = createEmptyUser();
   let jsonOutput = '';
   let error = '';
@@ -59,6 +59,13 @@
   }
 
   $: if (isGeneratedPassword) currentUser.password = generatePassword();
+
+  function resetState() {
+    users = [];
+    currentUser = createEmptyUser();
+    error = '';
+    updateJsonPreview();
+  }
 
   function handleSubmit() {
     if (!currentUser.username || !currentUser.password || !currentUser.role) {
@@ -125,7 +132,6 @@
   }
 
   async function downloadJson() {
-    console.log('Downloading JSON...');
     try {
       // Prompt the user to select a save location
       const filePath = await save({
@@ -143,6 +149,47 @@
     }
   }
 
+  let test: any;
+  async function importJson() {
+    try {
+      const filePath = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (filePath) {
+        resetState();
+        const json = await readTextFile(filePath as string);
+        const parsed = JSON.parse(json);
+
+        if (!parsed.users || !Array.isArray(parsed.users)) {
+          error = 'Invalid JSON format: Missing users array';
+          return;
+        }
+
+        users = parsed.users.map((user: any) => {
+          const mappedUser: User = {
+            username: user.username || '',
+            password: user.credentials?.[0]?.value || generatePassword(),
+            email: user.email || '',
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            role: ROLES.includes(user.realm_roles?.[0]) ? user.realm_roles[0] : ROLES[1]
+          };
+          return mappedUser;
+        });
+
+        currentUser = createEmptyUser();
+        if (isGeneratedPassword) currentUser.password = generatePassword();
+        error = '';
+        updateJsonPreview();
+      }
+    } catch (error) {
+      console.error('Failed to import file:', error);
+    }
+  }
+
   function copyToClipboard() {
     navigator.clipboard.writeText(jsonOutput);
   }
@@ -154,6 +201,7 @@
   $: updateJsonPreview();
 </script>
 
+<pre>{JSON.stringify(test, null, 2)}</pre>
 <div class="min-h-screen">
   <div class="grid grid-cols-2 gap-8 p-2">
     <!-- Input Column -->
@@ -299,4 +347,7 @@
   </div>
 </div>
 
-<ThemeToggle />
+<div class="fixed bottom-1 left-1 z-50 flex gap-x-2">
+  <ThemeToggle />
+  <Button variant="outline" on:click={importJson}>Import JSON</Button>
+</div>
