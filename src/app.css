@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-background text-foreground antialiased;
+  @apply bg-background antialiased;
 
   @layer base {
     html {
