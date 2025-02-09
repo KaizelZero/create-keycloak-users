@@ -21,7 +21,6 @@
 
   let isDragging = $state(false);
   let isEditing = $state<boolean>(false);
-  let showPassword = $state<boolean>(true);
   let isGeneratedPassword = $state<boolean>(true);
 
   let organization = $state<Organization>({
@@ -66,7 +65,6 @@
     usersState.clearUsers();
     currentUser = createEmptyUser();
     isGeneratedPassword = true;
-    showPassword = true;
     isEditing = false;
     organization = { name: '', url: '' };
 
@@ -312,21 +310,11 @@
           </Label>
           <div class="flex gap-2">
             <Input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
+              type="text"
               bind:value={currentUser.password}
               disabled={isGeneratedPassword}
               required
             />
-            <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="show-password"
-                bind:checked={showPassword}
-                class="h-4 w-4 rounded border"
-              />
-              <Label for="show-password" class="text-sm">Show Password</Label>
-            </div>
           </div>
         </div>
 

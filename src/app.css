@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-background text-foreground antialiased;
+
+  @layer base {
+    html {
+      @apply dark:bg-background;
+    }
+  }
+}
+
 @layer base {
   :root {
     --background: 235 19% 13%;
