@@ -71,9 +71,6 @@
     currentUser = createEmptyUser();
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
-    updateJsonPreview();
-    updateBitwardenPreview();
-    updateBitwardenCommands();
     toast.info('Reset State');
   }
 
@@ -124,51 +121,6 @@
     currentUser = createEmptyUser();
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
-    updateJsonPreview();
-    updateBitwardenPreview();
-    updateBitwardenCommands();
-  }
-
-  function updateJsonPreview() {
-    // add the organization name and url to the json output
-    jsonOutput = JSON.stringify(
-      {
-        organization,
-        users: users.map((user) => ({
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          credentials: [{ type: 'password', value: user.password, temporary: true }],
-          realmRoles: [user.role],
-          requiredActions: ['UPDATE_PASSWORD'],
-          enabled: true
-        }))
-      },
-      null,
-      2
-    );
-  }
-
-  function updateBitwardenPreview() {
-    bitwarden = '===================================\n';
-    users.forEach((user) => {
-      bitwarden += `${user.email}\n`;
-      bitwarden += `${organization.name} - ${user.username}\n\n`;
-      bitwarden += `Username: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n`;
-      bitwarden += '===================================\n';
-    });
-  }
-
-  function updateBitwardenCommands() {
-    bitwardenCommands =
-      'bw unlock\n' +
-      users
-        .map(
-          (user) =>
-            `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
-        )
-        .join('\n');
   }
 
   async function downloadJson() {
@@ -223,9 +175,6 @@
         currentUser = createEmptyUser();
         if (isGeneratedPassword) currentUser.password = generatePassword();
         error = '';
-        updateJsonPreview();
-        updateBitwardenPreview();
-        updateBitwardenCommands();
       }
     } catch (error) {
       toast.error(`Failed to import file: ${error}`);
@@ -247,9 +196,45 @@
     usernameInput?.focus();
   }
 
-  $: updateJsonPreview();
-  $: updateBitwardenPreview();
-  $: updateBitwardenCommands();
+  // Derive all previews from users and organization
+  $: jsonOutput = JSON.stringify(
+    {
+      organization,
+      users: users.map((user) => ({
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        credentials: [{ type: 'password', value: user.password, temporary: true }],
+        realmRoles: [user.role],
+        requiredActions: ['UPDATE_PASSWORD'],
+        enabled: true
+      }))
+    },
+    null,
+    2
+  );
+
+  $: bitwarden =
+    users.length > 0
+      ? users
+          .map(
+            (user) =>
+              `===================================\n${user.email}\n${organization.name} - ${user.username}\n\nUsername: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n===================================\n`
+          )
+          .join('')
+      : '';
+
+  $: bitwardenCommands =
+    users.length > 0
+      ? 'bw unlock\n' +
+        users
+          .map(
+            (user) =>
+              `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
+          )
+          .join('\n')
+      : '';
 
   $: language = view === 'JSON' ? 'json' : view === 'Bitwarden' ? 'plaintext' : 'bash';
   $: currentContent =
