@@ -130,8 +130,10 @@
   }
 
   function updateJsonPreview() {
+    // add the organization name and url to the json output
     jsonOutput = JSON.stringify(
       {
+        organization,
         users: users.map((user) => ({
           username: user.username,
           firstName: user.firstName,
@@ -213,7 +215,7 @@
             email: user.email || '',
             firstName: user.firstName || '',
             lastName: user.lastName || '',
-            role: user.realm_roles[0]
+            role: user.realmRoles[0]
           };
           return mappedUser;
         });
