@@ -1,13 +1,12 @@
 <script lang="ts">
-  import { ThemeToggle } from '$lib/components';
+  import { MarkdownDisplay, ThemeToggle } from '$lib/components';
   import { Button } from '$lib/components/ui/button';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
-  import ClipboardCheck from 'lucide-svelte/icons/clipboard-check';
-  import ClipboardCopy from 'lucide-svelte/icons/clipboard-copy';
   import Download from 'lucide-svelte/icons/download';
   import { toast } from 'svelte-sonner';
 
@@ -31,11 +30,14 @@
   $: users = [] as User[];
   let currentUser: User = createEmptyUser();
   let jsonOutput = '';
+  let bitwarden = '';
+  let bitwardenCommands = '';
   let error = '';
   let editingIndex: number | null = null;
   let showPassword = false;
   $: isGeneratedPassword = true;
   let usernameInput: HTMLInputElement | null = null;
+  let view = 'JSON';
 
   function createEmptyUser(): User {
     return {
@@ -70,6 +72,8 @@
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     updateJsonPreview();
+    updateBitwardenPreview();
+    updateBitwardenCommands();
     toast.info('Reset State');
   }
 
@@ -121,6 +125,8 @@
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     updateJsonPreview();
+    updateBitwardenPreview();
+    updateBitwardenCommands();
   }
 
   function updateJsonPreview() {
@@ -140,6 +146,27 @@
       null,
       2
     );
+  }
+
+  function updateBitwardenPreview() {
+    bitwarden = '===================================\n';
+    users.forEach((user) => {
+      bitwarden += `${user.email}\n`;
+      bitwarden += `${organization.name} - ${user.username}\n\n`;
+      bitwarden += `Username: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n`;
+      bitwarden += '===================================\n';
+    });
+  }
+
+  function updateBitwardenCommands() {
+    bitwardenCommands =
+      'bw unlock\n' +
+      users
+        .map(
+          (user) =>
+            `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
+        )
+        .join('\n');
   }
 
   async function downloadJson() {
@@ -195,6 +222,8 @@
         if (isGeneratedPassword) currentUser.password = generatePassword();
         error = '';
         updateJsonPreview();
+        updateBitwardenPreview();
+        updateBitwardenCommands();
       }
     } catch (error) {
       toast.error(`Failed to import file: ${error}`);
@@ -203,8 +232,8 @@
   }
 
   let copied = false;
-  function copyToClipboard() {
-    navigator.clipboard.writeText(jsonOutput);
+  function copyToClipboard(output: string) {
+    navigator.clipboard.writeText(output);
     copied = true;
     toast.success('Copied to clipboard!');
     setTimeout(() => {
@@ -217,6 +246,12 @@
   }
 
   $: updateJsonPreview();
+  $: updateBitwardenPreview();
+  $: updateBitwardenCommands();
+
+  $: language = view === 'JSON' ? 'json' : view === 'Bitwarden' ? 'plaintext' : 'bash';
+  $: currentContent =
+    view === 'JSON' ? jsonOutput : view === 'Bitwarden' ? bitwarden : bitwardenCommands;
 </script>
 
 <div class="min-h-screen">
@@ -324,7 +359,7 @@
       {/if}
 
       {#if users.length > 0}
-        <div class="mt-6 rounded bg-muted p-4">
+        <div class="mt-6 h-96 overflow-auto rounded bg-muted p-4">
           <h3 class="mb-2 font-semibold">Users Added ({users.length}):</h3>
           <ul class="space-y-2">
             {#each users as user, index (user.username)}
@@ -353,26 +388,20 @@
       <div class="mb-4 flex items-center justify-between">
         <h3 class="font-semibold">JSON Preview</h3>
         <div class="flex gap-2">
-          <Button
-            size="sm"
-            on:click={copyToClipboard}
-            disabled={users.length === 0}
-            class={'hidden lg:block'}
-          >
-            {copied ? 'Copied!' : 'Copy JSON'}
-          </Button>
-          <Button
-            size="sm"
-            on:click={copyToClipboard}
-            disabled={users.length === 0}
-            class={'block lg:hidden'}
-          >
-            {#if copied}
-              <ClipboardCheck />
-            {:else}
-              <ClipboardCopy />
-            {/if}
-          </Button>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild let:builder>
+              <Button variant="outline" builders={[builder]}>{view}</Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content class="w-56">
+              <DropdownMenu.RadioGroup bind:value={view}>
+                <DropdownMenu.RadioItem value="JSON">JSON</DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItem value="Bitwarden">Bitwarden</DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItem value="Bitwarden Commands"
+                  >Bitwarden Commands</DropdownMenu.RadioItem
+                >
+              </DropdownMenu.RadioGroup>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
           <Button
             size="sm"
             on:click={downloadJson}
@@ -392,16 +421,24 @@
         </div>
       </div>
 
-      {#if users.length > 0}
-        <pre class="flex-1 overflow-auto rounded bg-muted p-4 font-mono text-sm">{jsonOutput}</pre>
-      {:else}
-        <div class="flex flex-1 items-center justify-center text-gray-500">No users added yet.</div>
-      {/if}
+      <div>
+        {#if users.length > 0}
+          <MarkdownDisplay
+            content={currentContent}
+            {language}
+            onCopy={() => copyToClipboard(currentContent)}
+          />
+        {:else}
+          <div class="flex flex-1 items-center justify-center text-gray-500">
+            No users added yet.
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
 </div>
 
-<div class="fixed bottom-1 right-1 flex gap-x-2 py-2 align-middle">
+<div class="fixed bottom-1 right-1 mr-2 flex gap-x-2 py-2 align-middle">
   <ThemeToggle />
   <Button variant="outline" on:click={importJson}>Import JSON</Button>
   <Button variant="destructive" on:click={resetState}>Reset</Button>
