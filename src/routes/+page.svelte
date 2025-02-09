@@ -1,30 +1,13 @@
 <script lang="ts">
-  import { MarkdownDisplay, ThemeToggle } from '$lib/components';
+  import { Footer, OrganizationForm, OutputPreview } from '$lib/components';
   import { Button } from '$lib/components/ui/button';
-  import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
+  import { ROLES, type Organization, type User } from '$lib/types';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
-  import Download from 'lucide-svelte/icons/download';
   import { toast } from 'svelte-sonner';
-
-  type User = {
-    username: string;
-    password: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  };
-
-  type Organization = {
-    name: string;
-    url: string;
-  };
-
-  const ROLES = ['Administrator', 'Data Administrator', 'Data Editor', 'Data Viewer'] as const;
 
   let organization: Organization = { name: '', url: '' };
   $: users = [] as User[];
@@ -37,7 +20,6 @@
   let showPassword = false;
   $: isGeneratedPassword = true;
   let usernameInput: HTMLInputElement | null = null;
-  let view = 'JSON';
 
   function createEmptyUser(): User {
     return {
@@ -196,49 +178,46 @@
     usernameInput?.focus();
   }
 
-  // Derive all previews from users and organization
-  $: jsonOutput = JSON.stringify(
-    {
-      organization,
-      users: users.map((user) => ({
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        credentials: [{ type: 'password', value: user.password, temporary: true }],
-        realmRoles: [user.role],
-        requiredActions: ['UPDATE_PASSWORD'],
-        enabled: true
-      }))
-    },
-    null,
-    2
-  );
+  $: if (users) {
+    jsonOutput = JSON.stringify(
+      {
+        organization,
+        users: users.map((user) => ({
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          credentials: [{ type: 'password', value: user.password, temporary: true }],
+          realmRoles: [user.role],
+          requiredActions: ['UPDATE_PASSWORD'],
+          enabled: true
+        }))
+      },
+      null,
+      2
+    );
 
-  $: bitwarden =
-    users.length > 0
-      ? users
-          .map(
-            (user) =>
-              `===================================\n${user.email}\n${organization.name} - ${user.username}\n\nUsername: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n===================================\n`
-          )
-          .join('')
-      : '';
+    bitwarden = '===================================\n';
+    users.forEach((user) => {
+      if (user.email) {
+        bitwarden += `\n${user.email}\n`;
+        bitwarden += `${organization.name} - ${user.username}\n\n`;
+      } else {
+        bitwarden += `\n${organization.name} - ${user.username}\n\n`;
+      }
+      bitwarden += `Username: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n`;
+      bitwarden += '\n===================================\n';
+    });
 
-  $: bitwardenCommands =
-    users.length > 0
-      ? 'bw unlock\n' +
-        users
-          .map(
-            (user) =>
-              `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
-          )
-          .join('\n')
-      : '';
-
-  $: language = view === 'JSON' ? 'json' : view === 'Bitwarden' ? 'plaintext' : 'bash';
-  $: currentContent =
-    view === 'JSON' ? jsonOutput : view === 'Bitwarden' ? bitwarden : bitwardenCommands;
+    bitwardenCommands =
+      'bw unlock\n' +
+      users
+        .map(
+          (user) =>
+            `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
+        )
+        .join('\n');
+  }
 </script>
 
 <div class="min-h-screen">
@@ -246,21 +225,7 @@
     <!-- Input Column -->
     <div class="flex select-none flex-col gap-4">
       <!-- Organization -->
-      <div class="flex w-full flex-col gap-4 lg:flex-row">
-        <div class="w-full">
-          <Label for="org_name">Organization Name</Label>
-          <Input id="org_name" bind:value={organization.name} placeholder="Organization Name" />
-        </div>
-        <div class="w-full">
-          <Label for="org_url">Organization URL</Label>
-          <Input
-            type="url"
-            id="org_url"
-            bind:value={organization.url}
-            placeholder="Organization URL"
-          />
-        </div>
-      </div>
+      <OrganizationForm bind:organization />
 
       <form on:submit|preventDefault={handleSubmit} class="flex flex-col gap-4">
         <div>
@@ -371,65 +336,15 @@
     </div>
 
     <!-- JSON Preview Column -->
-    <div class="flex max-h-screen flex-col rounded-lg p-4">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="font-semibold">JSON Preview</h3>
-        <div class="flex gap-2">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild let:builder>
-              <Button variant="outline" builders={[builder]}>{view}</Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content class="w-56">
-              <DropdownMenu.RadioGroup bind:value={view}>
-                <DropdownMenu.RadioItem value="JSON">JSON</DropdownMenu.RadioItem>
-                <DropdownMenu.RadioItem value="Bitwarden">Bitwarden</DropdownMenu.RadioItem>
-                <DropdownMenu.RadioItem value="Bitwarden Commands"
-                  >Bitwarden Commands</DropdownMenu.RadioItem
-                >
-              </DropdownMenu.RadioGroup>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-          <Button
-            size="sm"
-            on:click={downloadJson}
-            disabled={users.length === 0}
-            class={'hidden lg:block'}
-          >
-            Download JSON
-          </Button>
-          <Button
-            size="sm"
-            on:click={downloadJson}
-            disabled={users.length === 0}
-            class={'block lg:hidden'}
-          >
-            <Download />
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        {#if users.length > 0}
-          <MarkdownDisplay
-            content={currentContent}
-            {language}
-            onCopy={() => copyToClipboard(currentContent)}
-          />
-        {:else}
-          <div class="flex flex-1 items-center justify-center text-gray-500">
-            No users added yet.
-          </div>
-        {/if}
-      </div>
-    </div>
+    <OutputPreview
+      bind:jsonOutput
+      bind:bitwarden
+      bind:bitwardenCommands
+      {users}
+      {downloadJson}
+      {copyToClipboard}
+    />
   </div>
 </div>
 
-<div class="fixed bottom-1 right-1 mr-2 flex gap-x-2 py-2 align-middle">
-  <ThemeToggle />
-  <Button variant="outline" on:click={importJson}>Import JSON</Button>
-  <Button variant="destructive" on:click={resetState}>Reset</Button>
-  <Button on:click={toggleGeneratedPassword}>
-    {isGeneratedPassword ? 'Generated Password' : 'Manual Password'}
-  </Button>
-</div>
+<Footer {isGeneratedPassword} {toggleGeneratedPassword} {importJson} {resetState} />

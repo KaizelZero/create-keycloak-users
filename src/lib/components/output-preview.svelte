@@ -1,0 +1,55 @@
+<script lang="ts">
+  import { MarkdownDisplay, ViewDropdown } from '$lib/components';
+  import { Button } from '$lib/components/ui/button';
+  import type { User } from '$lib/types';
+  import { Download } from 'lucide-svelte';
+
+  let view = 'JSON';
+  export let jsonOutput = '';
+  export let bitwarden = '';
+  export let bitwardenCommands = '';
+  export let users: User[] = [];
+  export let downloadJson: () => void;
+  export let copyToClipboard: (content: string) => void;
+
+  $: language = view === 'JSON' ? 'json' : view === 'Bitwarden' ? 'plaintext' : 'bash';
+  $: currentContent =
+    view === 'JSON' ? jsonOutput : view === 'Bitwarden' ? bitwarden : bitwardenCommands;
+</script>
+
+<div class="flex max-h-screen flex-col rounded-lg p-4">
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="font-semibold">JSON Preview</h3>
+    <div class="flex gap-2">
+      <ViewDropdown bind:view />
+      <Button
+        size="sm"
+        on:click={downloadJson}
+        disabled={users.length === 0}
+        class={'hidden lg:block'}
+      >
+        Download JSON
+      </Button>
+      <Button
+        size="sm"
+        on:click={downloadJson}
+        disabled={users.length === 0}
+        class={'block lg:hidden'}
+      >
+        <Download />
+      </Button>
+    </div>
+  </div>
+
+  <div>
+    {#if users.length > 0}
+      <MarkdownDisplay
+        content={currentContent}
+        {language}
+        onCopy={() => copyToClipboard(currentContent)}
+      />
+    {:else}
+      <div class="flex flex-1 items-center justify-center text-gray-500">No users added yet.</div>
+    {/if}
+  </div>
+</div>

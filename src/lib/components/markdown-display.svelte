@@ -2,7 +2,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Check, Copy } from 'lucide-svelte';
   import Highlight from 'svelte-highlight';
-  import { json, plaintext, shell, type LanguageType } from 'svelte-highlight/languages';
+  import { bash, json, plaintext, type LanguageType } from 'svelte-highlight/languages';
   import { tokyoNightDark } from 'svelte-highlight/styles';
 
   export let content: string;
@@ -15,8 +15,8 @@
     highlightLanguage = json;
   } else if (language === 'plaintext') {
     highlightLanguage = plaintext;
-  } else if (language === 'shell') {
-    highlightLanguage = shell;
+  } else if (language === 'bash') {
+    highlightLanguage = bash;
   }
 
   let copied = false;
