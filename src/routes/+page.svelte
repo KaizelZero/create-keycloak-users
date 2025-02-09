@@ -1,24 +1,38 @@
 <script lang="ts">
-  import { Footer, OrganizationForm, OutputPreview } from '$lib/components';
+  import { Footer, OrganizationForm, OutputPreview, UsersList } from '$lib/components';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { ROLES, type Organization, type User } from '$lib/types';
+  import { getUsersState } from '$lib/users-state.svelte';
+  import { formatBitwardenCommands, formatBitwardenData } from '$lib/utils';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
   import { toast } from 'svelte-sonner';
 
-  let organization: Organization = { name: '', url: '' };
-  $: users = [] as User[];
-  let currentUser: User = createEmptyUser();
-  let jsonOutput = '';
-  let bitwarden = '';
-  let bitwardenCommands = '';
-  let error = '';
-  let editingIndex: number | null = null;
-  let showPassword = false;
-  $: isGeneratedPassword = true;
+  const usersState = getUsersState();
+  let users = usersState.users;
+
+  console.log(usersState);
+
+  let organization = $state<Organization>({
+    name: '',
+    url: ''
+  });
+
+  let currentUser = $state<User>(createEmptyUser());
+  let oldUser = $state<User>(createEmptyUser());
+
+  let jsonOutput = $state<string>('');
+  let bitwarden = $state<string>('');
+  let bitwardenCommands = $state<string>('');
+  let error = $state<string>('');
+
+  let isEditing = $state<boolean>(false);
+  let showPassword = $state<boolean>(true);
+  let isGeneratedPassword = $state<boolean>(true);
+
   let usernameInput: HTMLInputElement | null = null;
 
   function createEmptyUser(): User {
@@ -46,11 +60,18 @@
     }
   }
 
-  $: if (isGeneratedPassword) currentUser.password = generatePassword();
+  $effect(() => {
+    if (isGeneratedPassword && !isEditing) currentUser.password = generatePassword();
+  });
 
   function resetState() {
-    users = [];
+    usersState.clearUsers();
     currentUser = createEmptyUser();
+    isGeneratedPassword = true;
+    showPassword = true;
+    isEditing = false;
+    organization = { name: '', url: '' };
+
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     toast.info('Reset State');
@@ -62,35 +83,33 @@
       return;
     }
 
-    const isDuplicate = users.some(
-      (user, index) =>
-        user.username.toLowerCase() === currentUser.username.toLowerCase() && index !== editingIndex
-    );
+    const isDuplicate = usersState.checkDuplicate(currentUser.username);
 
-    if (isDuplicate) {
+    if (isDuplicate && !isEditing) {
       error = 'Username already exists. Please choose a different one.';
       focusUsername();
       return;
     }
 
-    if (editingIndex !== null) {
-      users[editingIndex] = { ...currentUser };
+    if (isEditing) {
+      usersState.updateUser(oldUser, currentUser);
     } else {
-      users = [...users, { ...currentUser }];
+      usersState.addUser(currentUser);
     }
 
     resetForm();
     focusUsername();
   }
 
-  function editUser(index: number) {
-    editingIndex = index;
-    currentUser = { ...users[index] };
+  function editUser(user: User) {
+    currentUser = { ...user };
+    oldUser = { ...user };
+    isEditing = true;
   }
 
-  function deleteUser(index: number) {
-    users = users.filter((_, i) => i !== index);
-    if (editingIndex === index) resetForm();
+  function deleteUser(username: string) {
+    usersState.deleteUser(username);
+    resetForm();
   }
 
   function capitalizeName(event: Event) {
@@ -99,7 +118,7 @@
   }
 
   function resetForm() {
-    editingIndex = null;
+    isEditing = false;
     currentUser = createEmptyUser();
     if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
@@ -178,46 +197,35 @@
     usernameInput?.focus();
   }
 
-  $: if (users) {
-    jsonOutput = JSON.stringify(
-      {
-        organization,
-        users: users.map((user) => ({
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          credentials: [{ type: 'password', value: user.password, temporary: true }],
-          realmRoles: [user.role],
-          requiredActions: ['UPDATE_PASSWORD'],
-          enabled: true
-        }))
-      },
-      null,
-      2
-    );
+  $effect(() => {
+    if (usersState.users.length > 0) {
+      jsonOutput = JSON.stringify(
+        {
+          organization,
+          users: usersState.users.map((user) => ({
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            credentials: [{ type: 'password', value: user.password, temporary: true }],
+            realmRoles: [user.role],
+            requiredActions: ['UPDATE_PASSWORD'],
+            enabled: true
+          }))
+        },
+        null,
+        2
+      );
 
-    bitwarden = '===================================\n';
-    users.forEach((user) => {
-      if (user.email) {
-        bitwarden += `\n${user.email}\n`;
-        bitwarden += `${organization.name} - ${user.username}\n\n`;
-      } else {
-        bitwarden += `\n${organization.name} - ${user.username}\n\n`;
-      }
-      bitwarden += `Username: ${user.username}\nPassword: ${user.password}\nURL: ${organization.url}\n`;
-      bitwarden += '\n===================================\n';
-    });
+      bitwarden = formatBitwardenData(usersState.users, organization);
 
-    bitwardenCommands =
-      'bw unlock\n' +
-      users
-        .map(
-          (user) =>
-            `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "Username: ${user.username}\`nPassword: ${user.password}\`nURL: ${organization.url}"`
-        )
-        .join('\n');
-  }
+      bitwardenCommands = formatBitwardenCommands(usersState.users, organization);
+    } else {
+      jsonOutput = '';
+      bitwarden = '';
+      bitwardenCommands = '';
+    }
+  });
 </script>
 
 <div class="min-h-screen">
@@ -297,8 +305,8 @@
         </fieldset>
 
         <div class="flex gap-2">
-          <Button type="submit">{editingIndex === null ? 'Add User' : 'Update User'}</Button>
-          {#if editingIndex !== null}
+          <Button type="submit">{!isEditing ? 'Add User' : 'Update User'}</Button>
+          {#if isEditing}
             <Button variant="destructive" on:click={resetForm}>Cancel Edit</Button>
           {:else}
             <Button variant="outline" on:click={resetForm}>Reset Form</Button>
@@ -310,29 +318,7 @@
         <div class="mt-2 text-sm text-red-500">{error}</div>
       {/if}
 
-      {#if users.length > 0}
-        <div class="mt-6 h-96 overflow-auto rounded bg-muted p-4">
-          <h3 class="mb-2 font-semibold">Users Added ({users.length}):</h3>
-          <ul class="space-y-2">
-            {#each users as user, index (user.username)}
-              <li
-                class="flex items-center justify-between rounded bg-muted-foreground p-2 text-foreground shadow-sm"
-              >
-                <div>
-                  <span class="font-medium text-muted">{user.username}</span>
-                  <span class="ml-2 text-sm text-muted">({user.role})</span>
-                </div>
-                <div class="flex gap-2">
-                  <Button size="sm" variant="outline" on:click={() => editUser(index)}>Edit</Button>
-                  <Button size="sm" variant="destructive" on:click={() => deleteUser(index)}>
-                    Delete
-                  </Button>
-                </div>
-              </li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
+      <UsersList {editUser} {deleteUser} />
     </div>
 
     <!-- JSON Preview Column -->
@@ -340,7 +326,6 @@
       bind:jsonOutput
       bind:bitwarden
       bind:bitwardenCommands
-      {users}
       {downloadJson}
       {copyToClipboard}
     />

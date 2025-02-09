@@ -1,7 +1,8 @@
+import type { Organization, User } from '$lib/types';
 import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -53,4 +54,40 @@ export const flyAndScale = (
     },
     easing: cubicOut
   };
+};
+
+export const formatBitwardenData = (users: User[], organization: Organization) => {
+  let formatted = '===================================\n';
+
+  users.forEach((user) => {
+    if (user.email) {
+      formatted += `\n${user.email}\n`;
+      formatted += `${organization.name} - ${user.username}\n\n`;
+    } else {
+      formatted += `\n${organization.name} - ${user.username}\n\n`;
+    }
+
+    formatted += `Username: ${user.username}\n`;
+    formatted += `Password: ${user.password}\n`;
+    formatted += `URL: ${organization.url}\n`;
+    formatted += '\n===================================\n';
+  });
+
+  return formatted;
+};
+
+export const formatBitwardenCommands = (users: User[], organization: Organization) => {
+  const UNLOCK_COMMAND = 'bw unlock';
+
+  const userCommands = users.map((user) => {
+    const credentials = [
+      `Username: ${user.username}`,
+      `Password: ${user.password}`,
+      `URL: ${organization.url}`
+    ].join('`n');
+
+    return `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "${credentials}"`;
+  });
+
+  return [UNLOCK_COMMAND, ...userCommands].join('\n');
 };

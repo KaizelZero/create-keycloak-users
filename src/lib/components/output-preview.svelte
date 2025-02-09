@@ -1,16 +1,17 @@
 <script lang="ts">
   import { MarkdownDisplay, ViewDropdown } from '$lib/components';
   import { Button } from '$lib/components/ui/button';
-  import type { User } from '$lib/types';
+  import { getUsersState } from '$lib/users-state.svelte';
   import { Download } from 'lucide-svelte';
 
   let view = 'JSON';
   export let jsonOutput = '';
   export let bitwarden = '';
   export let bitwardenCommands = '';
-  export let users: User[] = [];
   export let downloadJson: () => void;
   export let copyToClipboard: (content: string) => void;
+
+  let usersState = getUsersState();
 
   $: language = view === 'JSON' ? 'json' : view === 'Bitwarden' ? 'plaintext' : 'bash';
   $: currentContent =
@@ -25,7 +26,7 @@
       <Button
         size="sm"
         on:click={downloadJson}
-        disabled={users.length === 0}
+        disabled={usersState.users.length === 0}
         class={'hidden lg:block'}
       >
         Download JSON
@@ -33,7 +34,7 @@
       <Button
         size="sm"
         on:click={downloadJson}
-        disabled={users.length === 0}
+        disabled={usersState.users.length === 0}
         class={'block lg:hidden'}
       >
         <Download />
@@ -42,7 +43,7 @@
   </div>
 
   <div>
-    {#if users.length > 0}
+    {#if usersState.users.length > 0}
       <MarkdownDisplay
         content={currentContent}
         {language}
