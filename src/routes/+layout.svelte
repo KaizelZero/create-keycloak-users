@@ -9,7 +9,7 @@
 </script>
 
 <ModeWatcher />
-<main class="bg-background antialiased">
+<main class="max-h-screen bg-background antialiased">
   {@render children()}
 </main>
 <Toaster position="top-center" richColors closeButton />
