@@ -91,3 +91,16 @@ export const formatBitwardenCommands = (users: User[], organization: Organizatio
 
   return [UNLOCK_COMMAND, ...userCommands].join('\n');
 };
+
+export const credentialsUtils = {
+  generatePassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
+      ''
+    );
+  },
+
+  capitalize(value: string): string {
+    return value.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+};

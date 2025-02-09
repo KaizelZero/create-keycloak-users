@@ -6,15 +6,16 @@
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { ROLES, type Organization, type User } from '$lib/types';
   import { getUsersState } from '$lib/users-state.svelte';
-  import { formatBitwardenCommands, formatBitwardenData } from '$lib/utils';
+  import { credentialsUtils, formatBitwardenCommands, formatBitwardenData } from '$lib/utils';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
   import { toast } from 'svelte-sonner';
 
   const usersState = getUsersState();
-  let users = usersState.users;
 
-  console.log(usersState);
+  let isEditing = $state<boolean>(false);
+  let showPassword = $state<boolean>(true);
+  let isGeneratedPassword = $state<boolean>(true);
 
   let organization = $state<Organization>({
     name: '',
@@ -29,16 +30,12 @@
   let bitwardenCommands = $state<string>('');
   let error = $state<string>('');
 
-  let isEditing = $state<boolean>(false);
-  let showPassword = $state<boolean>(true);
-  let isGeneratedPassword = $state<boolean>(true);
-
   let usernameInput: HTMLInputElement | null = null;
 
   function createEmptyUser(): User {
     return {
       username: '',
-      password: '',
+      password: isGeneratedPassword ? credentialsUtils.generatePassword() : '',
       email: '',
       firstName: '',
       lastName: '',
@@ -46,22 +43,16 @@
     };
   }
 
-  function generatePassword(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
-      ''
-    );
-  }
-
   function toggleGeneratedPassword() {
     isGeneratedPassword = !isGeneratedPassword;
     if (isGeneratedPassword) {
-      currentUser.password = generatePassword();
+      currentUser.password = credentialsUtils.generatePassword();
     }
   }
 
   $effect(() => {
-    if (isGeneratedPassword && !isEditing) currentUser.password = generatePassword();
+    if (isGeneratedPassword && !isEditing)
+      currentUser.password = credentialsUtils.generatePassword();
   });
 
   function resetState() {
@@ -72,7 +63,6 @@
     isEditing = false;
     organization = { name: '', url: '' };
 
-    if (isGeneratedPassword) currentUser.password = generatePassword();
     error = '';
     toast.info('Reset State');
   }
@@ -112,15 +102,10 @@
     resetForm();
   }
 
-  function capitalizeName(event: Event) {
-    const input = event.target as HTMLInputElement;
-    input.value = input.value.replace(/\b\w/g, (char) => char.toUpperCase());
-  }
-
   function resetForm() {
     isEditing = false;
     currentUser = createEmptyUser();
-    if (isGeneratedPassword) currentUser.password = generatePassword();
+    if (isGeneratedPassword) currentUser.password = credentialsUtils.generatePassword();
     error = '';
   }
 
@@ -161,7 +146,9 @@
           return;
         }
 
-        users = parsed.users.map((user: any) => {
+        organization = parsed.organization;
+
+        usersState.users = parsed.users.map((user: any) => {
           const mappedUser: User = {
             username: user.username || '',
             password: user.credentials?.[0]?.value,
@@ -174,7 +161,6 @@
         });
 
         currentUser = createEmptyUser();
-        if (isGeneratedPassword) currentUser.password = generatePassword();
         error = '';
       }
     } catch (error) {
@@ -256,11 +242,21 @@
         <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
           <div>
             <Label for="firstName">First Name</Label>
-            <Input id="firstName" bind:value={currentUser.firstName} on:input={capitalizeName} />
+            <Input
+              id="firstName"
+              bind:value={currentUser.firstName}
+              on:input={(e) =>
+                (currentUser.firstName = credentialsUtils.capitalize(e.currentTarget.value))}
+            />
           </div>
           <div>
             <Label for="lastName">Last Name</Label>
-            <Input id="lastName" bind:value={currentUser.lastName} on:input={capitalizeName} />
+            <Input
+              id="lastName"
+              bind:value={currentUser.lastName}
+              on:input={(e) =>
+                (currentUser.lastName = credentialsUtils.capitalize(e.currentTarget.value))}
+            />
           </div>
         </div>
 
