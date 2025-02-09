@@ -18,7 +18,7 @@
       </h3>
     </div>
 
-    <div class="h-[19rem] overflow-y-auto">
+    <div class="h-[calc(100vh-46.8rem)] overflow-y-auto">
       <ul class="space-y-2 p-4">
         {#each usersState.users as user, index (user.username)}
           <li
@@ -27,7 +27,7 @@
           >
             <div class="flex-1 truncate pr-4">
               <div class="flex items-baseline gap-2">
-                <span class="truncate font-medium text-foreground">{user.username}</span>
+                <span class="truncate font-medium">{user.username}</span>
                 <span class="text-sm text-muted-foreground">({user.role})</span>
               </div>
               {#if user.email}
