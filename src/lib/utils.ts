@@ -92,6 +92,32 @@ export const formatBitwardenCommands = (users: User[], organization: Organizatio
   return [UNLOCK_COMMAND, ...userCommands].join('\n');
 };
 
+export function generateJsonOutput(users: User[], organization: Organization) {
+  return JSON.stringify(
+    {
+      organization,
+      users: users.map((user) => ({
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        credentials: [
+          {
+            type: 'password',
+            value: user.password,
+            temporary: true
+          }
+        ],
+        realmRoles: [user.role],
+        requiredActions: ['UPDATE_PASSWORD'],
+        enabled: true
+      }))
+    },
+    null,
+    2
+  );
+}
+
 export const credentialsUtils = {
   generatePassword(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';

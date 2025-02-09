@@ -6,13 +6,20 @@
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { ROLES, type Organization, type User } from '$lib/types';
   import { getUsersState } from '$lib/users-state.svelte';
-  import { credentialsUtils, formatBitwardenCommands, formatBitwardenData } from '$lib/utils';
+  import {
+    credentialsUtils,
+    formatBitwardenCommands,
+    formatBitwardenData,
+    generateJsonOutput
+  } from '$lib/utils';
   import { open, save } from '@tauri-apps/api/dialog';
   import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
+  import { appWindow } from '@tauri-apps/api/window';
   import { toast } from 'svelte-sonner';
 
   const usersState = getUsersState();
 
+  let isDragging = $state(false);
   let isEditing = $state<boolean>(false);
   let showPassword = $state<boolean>(true);
   let isGeneratedPassword = $state<boolean>(true);
@@ -55,7 +62,7 @@
       currentUser.password = credentialsUtils.generatePassword();
   });
 
-  function resetState() {
+  function resetState(showToast = true) {
     usersState.clearUsers();
     currentUser = createEmptyUser();
     isGeneratedPassword = true;
@@ -64,7 +71,9 @@
     organization = { name: '', url: '' };
 
     error = '';
-    toast.info('Reset State');
+    if (showToast) {
+      toast.success('State reset');
+    }
   }
 
   function handleSubmit() {
@@ -137,36 +146,43 @@
       });
 
       if (filePath) {
-        resetState();
+        resetState(false);
         const json = await readTextFile(filePath as string);
         const parsed = JSON.parse(json);
-
-        if (!parsed.users || !Array.isArray(parsed.users)) {
-          error = 'Invalid JSON format: Missing users array';
-          return;
-        }
-
-        organization = parsed.organization;
-
-        usersState.users = parsed.users.map((user: any) => {
-          const mappedUser: User = {
-            username: user.username || '',
-            password: user.credentials?.[0]?.value,
-            email: user.email || '',
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            role: user.realmRoles[0]
-          };
-          return mappedUser;
-        });
-
-        currentUser = createEmptyUser();
-        error = '';
+        await handleImportedJson(parsed);
       }
     } catch (error) {
       toast.error(`Failed to import file: ${error}`);
-      console.error('Failed to import file:', error);
     }
+  }
+
+  async function handleImportedJson(parsed: any) {
+    if (!parsed.users || !Array.isArray(parsed.users)) {
+      error = 'Invalid JSON format: Missing users array';
+      return false;
+    }
+
+    // Update organization if present in JSON
+    if (parsed.organization) {
+      organization = parsed.organization;
+    }
+
+    // Clear existing users and add new ones
+    usersState.clearUsers();
+    parsed.users.forEach((user: any) => {
+      usersState.addUser({
+        username: user.username || '',
+        password: user.credentials?.[0]?.value || credentialsUtils.generatePassword(),
+        email: user.email || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.realmRoles?.[0] || ROLES[1]
+      });
+    });
+
+    error = '';
+    toast.success('Successfully imported users!');
+    return true;
   }
 
   let copied = false;
@@ -185,26 +201,8 @@
 
   $effect(() => {
     if (usersState.users.length > 0) {
-      jsonOutput = JSON.stringify(
-        {
-          organization,
-          users: usersState.users.map((user) => ({
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            credentials: [{ type: 'password', value: user.password, temporary: true }],
-            realmRoles: [user.role],
-            requiredActions: ['UPDATE_PASSWORD'],
-            enabled: true
-          }))
-        },
-        null,
-        2
-      );
-
+      jsonOutput = generateJsonOutput(usersState.users, organization);
       bitwarden = formatBitwardenData(usersState.users, organization);
-
       bitwardenCommands = formatBitwardenCommands(usersState.users, organization);
     } else {
       jsonOutput = '';
@@ -212,23 +210,70 @@
       bitwardenCommands = '';
     }
   });
+
+  // Tauri-specific file drop handling
+  $effect(() => {
+    const unlisten = appWindow.onFileDropEvent(async (event) => {
+      switch (event.payload.type) {
+        case 'hover':
+          isDragging = true;
+          break;
+        case 'drop':
+          isDragging = false;
+          await handleDroppedFiles(event.payload.paths);
+          break;
+        case 'cancel':
+          isDragging = false;
+          break;
+      }
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  });
+
+  async function handleDroppedFiles(paths: string[]) {
+    if (paths.length === 0) return;
+
+    const filePath = paths[0];
+    if (!filePath.endsWith('.json')) {
+      toast.error('Only JSON files are allowed');
+      return;
+    }
+
+    try {
+      resetState(false);
+      const contents = await readTextFile(filePath);
+      const parsed = JSON.parse(contents);
+      await handleImportedJson(parsed);
+    } catch (error) {
+      toast.error(`Failed to import file: ${error}`);
+    }
+  }
 </script>
 
 <div class="min-h-screen">
   <div class="grid h-[calc(100vh-4rem)] grid-cols-2 gap-8 p-2">
     <!-- Input Column -->
-    <div class="flex select-none flex-col gap-4">
+    <div class="flex select-none flex-col gap-4 p-4">
       <!-- Organization -->
       <OrganizationForm bind:organization />
 
-      <form on:submit|preventDefault={handleSubmit} class="flex flex-col gap-4">
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        class="flex flex-col gap-4"
+      >
         <div>
           <Label for="username">
             Username <span class="text-sm text-gray-500">(required)</span>
           </Label>
           <input
             id="username"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             bind:value={currentUser.username}
             bind:this={usernameInput}
             required
@@ -310,9 +355,15 @@
         </div>
       </form>
 
-      {#if error}
-        <div class="mt-2 text-sm text-red-500">{error}</div>
-      {/if}
+      <div class="relative mb-0 mt-4">
+        {#if error}
+          <div
+            class="animate-fade-in absolute inset-x-0 -top-5 text-sm text-red-500 transition-opacity"
+          >
+            {error}
+          </div>
+        {/if}
+      </div>
 
       <UsersList {editUser} {deleteUser} />
     </div>
@@ -329,3 +380,14 @@
 </div>
 
 <Footer {isGeneratedPassword} {toggleGeneratedPassword} {importJson} {resetState} />
+{#if isDragging}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+  >
+    <div
+      class="rounded-lg border-2 border-dashed border-primary p-8 text-2xl font-bold text-primary"
+    >
+      Drop JSON File to Import
+    </div>
+  </div>
+{/if}

@@ -14,25 +14,13 @@
     "allowlist": {
       "all": false,
       "dialog": {
-        "all": false,
-        "ask": false,
-        "confirm": false,
-        "message": false,
         "open": true,
         "save": true
       },
       "fs": {
-        "all": false,
-        "copyFile": false,
-        "createDir": false,
-        "exists": false,
-        "readDir": false,
         "readFile": true,
-        "removeDir": false,
-        "removeFile": false,
-        "renameFile": false,
-        "scope": [],
-        "writeFile": true
+        "writeFile": true,
+        "scope": ["$DESKTOP/*.json"]
       }
     },
     "bundle": {

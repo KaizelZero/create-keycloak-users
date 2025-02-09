@@ -9,5 +9,7 @@
 </script>
 
 <ModeWatcher />
-{@render children()}
+<main class="bg-background antialiased">
+  {@render children()}
+</main>
 <Toaster position="top-center" richColors closeButton />

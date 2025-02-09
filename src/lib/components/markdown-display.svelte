@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
   import { Check, Copy } from 'lucide-svelte';
-  import Highlight from 'svelte-highlight';
+  import Highlight, { LineNumbers } from 'svelte-highlight';
   import { bash, json, plaintext, type LanguageType } from 'svelte-highlight/languages';
   import { tokyoNightDark } from 'svelte-highlight/styles';
 
@@ -34,8 +34,8 @@
   {@html tokyoNightDark}
 </svelte:head>
 
-<div class="relative rounded-lg bg-[#1a1b26]">
-  <div class="flex items-center justify-between rounded-t-lg bg-[#1a1b26] px-4 py-2">
+<div class="relative rounded-lg bg-muted">
+  <div class="flex items-center justify-between rounded-t-lg bg-muted px-4 py-2">
     <span class="text-sm text-muted-foreground">{language}</span>
     <Button variant="ghost" size="sm" class="h-8 px-2" on:click={handleCopy}>
       {#if copied}
@@ -47,8 +47,12 @@
     </Button>
   </div>
   <div
-    class="h-[calc(100vh-10rem)] overflow-auto rounded-b-lg border-t border-[#343746] bg-[#1a1b26] p-4"
+    class="flex h-[calc(100vh-10rem)] flex-col rounded-b-lg border border-t border-[#343746] bg-[#1a1b26]"
   >
-    <Highlight language={highlightLanguage} code={content} class="overflow-auto text-sm" />
+    <Highlight
+      language={highlightLanguage}
+      code={content}
+      class="flex-1 overflow-auto rounded-lg bg-[#1a1b26] text-sm"
+    />
   </div>
 </div>
