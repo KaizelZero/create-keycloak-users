@@ -7,9 +7,12 @@
 
 <DropdownMenu.Root>
   <DropdownMenu.Trigger asChild let:builder>
-    <Button variant="outline" builders={[builder]}
-      ><span class="flex items-center gap-x-2">{view} <ChevronDown class="size-4" /></span></Button
-    >
+    <Button size="sm" variant="outline" builders={[builder]}>
+      <span class="flex items-center gap-x-2">
+        {view}
+        <ChevronDown class="size-4" />
+      </span>
+    </Button>
   </DropdownMenu.Trigger>
   <DropdownMenu.Content class="w-56">
     <DropdownMenu.RadioGroup bind:value={view}>

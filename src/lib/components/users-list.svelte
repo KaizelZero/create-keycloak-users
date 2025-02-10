@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    <div class="h-[calc(100vh-46.8rem)] overflow-y-auto">
+    <div class="h-[calc(100vh-46.8rem)] min-h-[100px] overflow-y-auto">
       <ul class="w-full min-w-full space-y-2 p-4">
         {#each filteredUsers as user, index (user.username)}
           <li
