@@ -251,8 +251,8 @@
   }
 </script>
 
-<div class="min-h-screen">
-  <div class="grid h-[calc(100vh-4rem)] grid-cols-2 gap-8 p-2">
+<div class="">
+  <div class="h-[calc(100vh-4rem)] gap-8 p-2 lg:grid lg:grid-cols-2">
     <!-- Input Column -->
     <div class="flex select-none flex-col gap-4 p-4">
       <!-- Organization -->
@@ -271,34 +271,46 @@
           </Label>
           <input
             id="username"
+            type="text"
             class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             bind:value={currentUser.username}
             bind:this={usernameInput}
             required
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
           />
         </div>
 
         <div>
           <Label for="email">Email</Label>
-          <Input type="email" id="email" bind:value={currentUser.email} />
+          <Input type="email" id="email" bind:value={currentUser.email} autocomplete="off" />
         </div>
         <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
           <div>
             <Label for="firstName">First Name</Label>
             <Input
               id="firstName"
+              type="text"
               bind:value={currentUser.firstName}
               on:input={(e) =>
                 (currentUser.firstName = credentialsUtils.capitalize(e.currentTarget.value))}
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
             />
           </div>
           <div>
             <Label for="lastName">Last Name</Label>
             <Input
               id="lastName"
+              type="text"
               bind:value={currentUser.lastName}
               on:input={(e) =>
                 (currentUser.lastName = credentialsUtils.capitalize(e.currentTarget.value))}
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
             />
           </div>
         </div>
@@ -314,6 +326,9 @@
               bind:value={currentUser.password}
               disabled={isGeneratedPassword}
               required
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
             />
           </div>
         </div>

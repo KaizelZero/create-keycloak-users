@@ -9,10 +9,26 @@
 <div class="flex w-full flex-col gap-4 lg:flex-row">
   <div class="w-full">
     <Label for="org_name">Organization Name</Label>
-    <Input id="org_name" bind:value={organization.name} placeholder="Organization Name" />
+    <Input
+      id="org_name"
+      type="text"
+      bind:value={organization.name}
+      placeholder="Organization Name"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    />
   </div>
   <div class="w-full">
     <Label for="org_url">Organization URL</Label>
-    <Input type="url" id="org_url" bind:value={organization.url} placeholder="Organization URL" />
+    <Input
+      id="org_url"
+      type="url"
+      bind:value={organization.url}
+      placeholder="Organization URL"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    />
   </div>
 </div>
