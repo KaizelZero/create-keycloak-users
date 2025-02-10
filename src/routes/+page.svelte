@@ -347,10 +347,17 @@
           </legend>
           <RadioGroup.Root bind:value={currentUser.role}>
             {#each ROLES as role}
-              <div class="flex items-center space-x-2">
-                <RadioGroup.Item value={role} id={role} />
-                <Label for={role} class="text-sm">{role}</Label>
-              </div>
+              <Label
+                for={role}
+                class="group flex items-center gap-2 text-sm hover:cursor-pointer hover:underline hover:underline-offset-2"
+              >
+                <RadioGroup.Item
+                  value={role}
+                  id={role}
+                  class="group group-hover:underline group-hover:underline-offset-2"
+                />
+                {role}
+              </Label>
             {/each}
           </RadioGroup.Root>
         </fieldset>

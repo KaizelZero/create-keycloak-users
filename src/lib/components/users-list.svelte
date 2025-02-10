@@ -56,12 +56,15 @@
       </div>
     </div>
 
-    <div class="h-[calc(100vh-46.8rem)] min-h-[100px] overflow-y-auto">
+    <div class="h-[calc(100vh-47rem)] min-h-[100px] overflow-y-auto">
       <ul class="w-full min-w-full space-y-2 p-4">
         {#each filteredUsers as user, index (user.username)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <li
             class="group flex items-center justify-between rounded-lg bg-background p-3 transition-all
-                   hover:bg-accent/50 hover:shadow-sm"
+          hover:bg-accent/50 hover:shadow-sm"
+            onclick={() => editUser(user)}
           >
             <div class="flex-1 truncate pr-4">
               <div class="flex items-baseline gap-2">
@@ -86,8 +89,11 @@
               <Button
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                on:click={() => deleteUser(user.username)}
+                class="z-10 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                on:click={(e) => {
+                  e.stopPropagation();
+                  deleteUser(user.username);
+                }}
                 aria-label="Delete user"
               >
                 <Trash class="h-4 w-4" />
