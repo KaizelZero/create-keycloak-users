@@ -300,7 +300,7 @@
               id="firstName"
               type="text"
               bind:value={currentUser.firstName}
-              on:input={(e) =>
+              oninput={(e) =>
                 (currentUser.firstName = credentialsUtils.capitalize(e.currentTarget.value))}
               autocomplete="off"
               autocorrect="off"
@@ -313,7 +313,7 @@
               id="lastName"
               type="text"
               bind:value={currentUser.lastName}
-              on:input={(e) =>
+              oninput={(e) =>
                 (currentUser.lastName = credentialsUtils.capitalize(e.currentTarget.value))}
               autocomplete="off"
               autocorrect="off"
@@ -365,9 +365,9 @@
         <div class="flex gap-2">
           <Button type="submit">{!isEditing ? 'Add User' : 'Update User'}</Button>
           {#if isEditing}
-            <Button variant="destructive" on:click={resetForm}>Cancel Edit</Button>
+            <Button variant="destructive" onclick={resetForm}>Cancel Edit</Button>
           {:else}
-            <Button variant="outline" on:click={resetForm}>Reset Form</Button>
+            <Button variant="outline" onclick={resetForm}>Reset Form</Button>
           {/if}
         </div>
       </form>

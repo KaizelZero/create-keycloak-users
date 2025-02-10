@@ -81,7 +81,7 @@
                 size="icon"
                 variant="ghost"
                 class="h-8 w-8 p-0"
-                on:click={() => editUser(user)}
+                onclick={() => editUser(user)}
                 aria-label="Edit user"
               >
                 <Pencil class="h-4 w-4" />
@@ -90,7 +90,7 @@
                 size="icon"
                 variant="ghost"
                 class="z-10 h-8 w-8 p-0 text-destructive hover:text-destructive"
-                on:click={(e) => {
+                onclick={(e) => {
                   e.stopPropagation();
                   deleteUser(user.username);
                 }}

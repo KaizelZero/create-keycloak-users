@@ -25,7 +25,7 @@
       <ViewDropdown bind:view />
       <Button
         size="sm"
-        on:click={downloadJson}
+        onclick={downloadJson}
         disabled={usersState.users.length === 0}
         class={'hidden lg:block'}
       >
@@ -33,7 +33,7 @@
       </Button>
       <Button
         size="sm"
-        on:click={downloadJson}
+        onclick={downloadJson}
         disabled={usersState.users.length === 0}
         class={'block lg:hidden'}
       >

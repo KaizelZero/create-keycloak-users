@@ -5,7 +5,6 @@ import { getContext, setContext } from 'svelte';
 export class UsersState {
   users = $state<User[]>([]);
 
-  // Users have username, email, and password
   constructor() {}
 
   addUser(user: User) {

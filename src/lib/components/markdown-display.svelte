@@ -37,7 +37,7 @@
 <div class="relative rounded-lg bg-muted">
   <div class="flex items-center justify-between rounded-t-lg bg-muted px-4 py-2">
     <span class="text-sm text-muted-foreground">{language}</span>
-    <Button variant="ghost" size="sm" class="h-8 px-2" on:click={handleCopy}>
+    <Button variant="ghost" size="sm" class="h-8 px-2" onclick={handleCopy}>
       {#if copied}
         <Check class="h-4 w-4" />
       {:else}
