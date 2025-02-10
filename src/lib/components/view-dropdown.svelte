@@ -1,22 +1,20 @@
 <script lang="ts">
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+  import * as Select from '$lib/components/ui/select/index.js';
   import { ChevronDown } from 'lucide-svelte';
   export let view: string;
+
+  const views = ['JSON', 'Bitwarden', 'Bitwarden Commands'];
 </script>
 
-<DropdownMenu.Root>
-  <DropdownMenu.Trigger class={buttonVariants({ variant: 'outline', size: 'sm' })}>
-    <span class="flex items-center gap-x-2">
-      {view}
-      <ChevronDown class="size-4" />
-    </span>
-  </DropdownMenu.Trigger>
-  <DropdownMenu.Content class="w-56">
-    <DropdownMenu.RadioGroup bind:value={view}>
-      <DropdownMenu.RadioItem value="JSON">JSON</DropdownMenu.RadioItem>
-      <DropdownMenu.RadioItem value="Bitwarden">Bitwarden</DropdownMenu.RadioItem>
-      <DropdownMenu.RadioItem value="Bitwarden Commands">Bitwarden Commands</DropdownMenu.RadioItem>
-    </DropdownMenu.RadioGroup>
-  </DropdownMenu.Content>
-</DropdownMenu.Root>
+<Select.Root type="single" name="view" bind:value={view}>
+  <Select.Trigger class="w-48">
+    {view}
+  </Select.Trigger>
+  <Select.Content>
+    {#each views as view}
+      <Select.Item value={view} label={view}>{view}</Select.Item>
+    {/each}
+  </Select.Content>
+</Select.Root>

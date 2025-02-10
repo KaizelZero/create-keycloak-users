@@ -21,7 +21,7 @@
 <div class="flex max-h-screen flex-col rounded-lg p-4">
   <div class="mb-4 flex items-center justify-between">
     <h3 class="font-semibold">{view} Preview</h3>
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       <ViewDropdown bind:view />
       <Button
         size="sm"
