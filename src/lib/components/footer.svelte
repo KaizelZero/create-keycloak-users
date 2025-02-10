@@ -11,9 +11,9 @@
 
 <div class="fixed bottom-1 right-1 mr-2 flex gap-x-2 py-2 align-middle">
   <!-- <ThemeToggle /> -->
-  <Button variant="outline" on:click={importJson}>Import JSON</Button>
-  <Button variant="destructive" on:click={resetState}>Reset</Button>
-  <Button on:click={toggleGeneratedPassword}>
+  <Button variant="outline" onclick={importJson}>Import JSON</Button>
+  <Button variant="destructive" onclick={resetState}>Reset</Button>
+  <Button onclick={toggleGeneratedPassword}>
     {#if isGeneratedPassword}
       <SquareCheckBig class="size-4" />
     {:else}

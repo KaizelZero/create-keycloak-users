@@ -51,13 +51,10 @@
 
   function toggleGeneratedPassword() {
     isGeneratedPassword = !isGeneratedPassword;
-    if (isGeneratedPassword) {
-      currentUser.password = credentialsUtils.generatePassword();
-    }
   }
 
   $effect(() => {
-    if (isGeneratedPassword && !isEditing)
+    if (isGeneratedPassword && !isEditing && currentUser.password === '')
       currentUser.password = credentialsUtils.generatePassword();
   });
 
