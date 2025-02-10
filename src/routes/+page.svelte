@@ -284,7 +284,14 @@
 
         <div>
           <Label for="email">Email</Label>
-          <Input type="email" id="email" bind:value={currentUser.email} autocomplete="off" />
+          <Input
+            type="email"
+            id="email"
+            bind:value={currentUser.email}
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
         </div>
         <div class="flex flex-col gap-4 lg:grid lg:grid-cols-2">
           <div>
