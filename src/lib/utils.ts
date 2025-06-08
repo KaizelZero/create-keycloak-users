@@ -12,7 +12,7 @@ export const formatBitwardenData = (users: User[], organization: Organization) =
   users.forEach((user) => {
     if (user.email) {
       formatted += `\n${user.email}\n`;
-      formatted += `${organization.name} - ${user.username}\n\n`;
+      formatted += `${organization.name} - ${user.firstName} ${user.lastName}\n\n`;
     } else {
       formatted += `\n${organization.name} - ${user.username}\n\n`;
     }
@@ -36,7 +36,7 @@ export const formatBitwardenCommands = (users: User[], organization: Organizatio
       `URL: ${organization.url}`
     ].join('`n');
 
-    return `bw send -n "${organization.name} - ${user.username}" -d 7 --hidden "${credentials}"`;
+    return `bw send -n "${organization.name} - ${user.firstName} ${user.lastName}" -d 7 --hidden "${credentials}"`;
   });
 
   return [UNLOCK_COMMAND, ...userCommands].join('\n');
@@ -69,14 +69,95 @@ export function generateJsonOutput(users: User[], organization: Organization) {
 }
 
 export const credentialsUtils = {
-  generatePassword(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(
-      ''
-    );
+  generatePassword(options?: {
+    length?: number;
+    uppercase?: boolean;
+    lowercase?: boolean;
+    numbers?: boolean;
+    symbols?: boolean;
+    avoidAmbiguous?: boolean;
+  }): string {
+    const {
+      length = 12,
+      uppercase = true,
+      lowercase = true,
+      numbers = true,
+      symbols = true,
+      avoidAmbiguous = true
+    } = options || {};
+
+    const charSets = {
+      uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      lowercase: 'abcdefghijklmnopqrstuvwxyz',
+      numbers: '0123456789',
+      // symbols: '!@#$%^&*()-_=+[]{}|;:,.<>?/`~'
+      symbols: '!@#%^&*' // Remove $ because $ mess with powershell commands
+    };
+
+    const ambiguousChars = 'O0l1I';
+
+    const ambiguousRegex = new RegExp(`[${ambiguousChars}]`, 'g');
+
+    let allChars = '';
+    const requiredChars: string[] = [];
+
+    if (uppercase) {
+      // Now we use the regex. This correctly removes both 'O' and 'I'.
+      const chars = avoidAmbiguous
+        ? charSets.uppercase.replace(ambiguousRegex, '')
+        : charSets.uppercase;
+      allChars += chars;
+      requiredChars.push(randomChar(chars));
+    }
+
+    if (lowercase) {
+      // The regex will correctly remove 'l'.
+      const chars = avoidAmbiguous
+        ? charSets.lowercase.replace(ambiguousRegex, '')
+        : charSets.lowercase;
+      allChars += chars;
+      requiredChars.push(randomChar(chars));
+    }
+
+    if (numbers) {
+      // The regex will correctly remove '0' and '1'.
+      const chars = avoidAmbiguous
+        ? charSets.numbers.replace(ambiguousRegex, '')
+        : charSets.numbers;
+      allChars += chars;
+      requiredChars.push(randomChar(chars));
+    }
+
+    if (symbols) {
+      allChars += charSets.symbols;
+      requiredChars.push(randomChar(charSets.symbols));
+    }
+
+    if (!allChars) {
+      throw new Error('At least one character set must be enabled.');
+    }
+
+    const remainingLength = length - requiredChars.length;
+    const passwordChars = [...requiredChars];
+
+    for (let i = 0; i < remainingLength; i++) {
+      passwordChars.push(randomChar(allChars));
+    }
+
+    // Fisher–Yates shuffle
+    for (let i = passwordChars.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+    }
+
+    return passwordChars.join('');
   },
 
   capitalize(value: string): string {
     return value.replace(/\b\w/g, (char) => char.toUpperCase());
   }
 };
+
+function randomChar(str: string): string {
+  return str[Math.floor(Math.random() * str.length)];
+}
