@@ -156,6 +156,9 @@ export const credentialsUtils = {
 
   capitalize(value: string): string {
     return value.replace(/\b\w/g, (char) => char.toUpperCase());
+  },
+  lowercase(value: string): string {
+    return value.toLowerCase();
   }
 };
 
