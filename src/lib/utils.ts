@@ -47,6 +47,7 @@ export function generateJsonOutput(users: User[], organization: Organization) {
     {
       organization,
       users: users.map((user) => ({
+        createdTimestamp: user.created_at,
         username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,

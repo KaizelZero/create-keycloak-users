@@ -40,6 +40,7 @@
 
   function createEmptyUser(): User {
     return {
+      created_at: '',
       username: '',
       password: isGeneratedPassword ? credentialsUtils.generatePassword() : '',
       email: '',
@@ -85,6 +86,7 @@
       return;
     }
 
+    currentUser.created_at = new Date().getTime().toString();
     if (isEditing) {
       usersState.updateUser(oldUser, currentUser);
     } else {
@@ -166,6 +168,7 @@
     usersState.clearUsers();
     parsed.users.forEach((user: any) => {
       usersState.addUser({
+        created_at: user.created_at || new Date().getTime().toString(),
         username: user.username || '',
         password: user.credentials?.[0]?.value || credentialsUtils.generatePassword(),
         email: user.email || '',

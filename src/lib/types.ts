@@ -4,6 +4,7 @@ export type Organization = {
 };
 
 export type User = {
+  created_at: string;
   username: string;
   password: string;
   email: string;
