@@ -357,6 +357,18 @@
               </Label>
             {/each}
           </RadioGroup.Root>
+          <!-- Custom Role -->
+          <Label for="customRole" class="mt-2 text-sm">Custom Role (optional)</Label>
+          <Input
+            type="text"
+            id="customRole"
+            bind:value={currentUser.role}
+            placeholder="Enter custom role"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            class="mt-1"
+          />
         </fieldset>
 
         <div class="flex gap-2">
